@@ -1,54 +1,38 @@
-(function(){
-  const btn = document.getElementById('btn');
-  const statusEl = document.getElementById('status');
+// app.js - Lógica de la PWA para GitHub Pages
+const statusEl = document.getElementById('status');
+const btn = document.getElementById('btn');
 
-  const MQTT_URL = 'wss://broker.hivemq.com:8000/mqtt';
-  const MQTT_TOPIC = 'mi-porton-unico-2026-xyz/comando';
+// Configuración obligatoria para GitHub (WSS + Puerto 8000)
+const MQTT_URL = 'wss://://broker.hivemq.com';
+const MQTT_TOPIC = 'mi-porton-unico-2026-xyz/comando';
 
-  let client;
-  let connected = false;
+const client = mqtt.connect(MQTT_URL, {
+    reconnectPeriod: 5000,
+    connectTimeout: 30 * 1000,
+});
 
-  function setStatus(msg){ statusEl.textContent = msg || ''; }
-  function setIndicator(isReady) {
-    statusEl.style.color = isReady ? '#16a34a' : '#f59e0b';
-  }
+client.on('connect', () => {
+    console.log('Conectado al Broker MQTT');
+    statusEl.innerText = "CONECTADO ✅";
+    statusEl.style.color = "#16a34a";
+});
 
-  function connect() {
-    setStatus('Conectando a MQTT...');
-    client = mqtt.connect(MQTT_URL, {
-      reconnectPeriod: 5000,
-      clean: true
-    });
+client.on('error', (err) => {
+    console.error('Error MQTT:', err);
+    statusEl.innerText = "ERROR DE CONEXIÓN";
+    statusEl.style.color = "red";
+});
 
-    client.on('connect', () => {
-      connected = true;
-      setIndicator(true);
-      setStatus('Conectado');
-    });
-
-    client.on('reconnect', () => { setIndicator(false); setStatus('Reconectando...'); });
-    client.on('close', () => { connected = false; setIndicator(false); setStatus('Desconectado'); });
-    client.on('error', (err) => { console.error(err); setIndicator(false); setStatus('Error MQTT'); });
-  }
-
-  function enviar() {
-    if (!connected) {
-      setStatus('Sin conexión MQTT');
-      return;
+function activarPorton() {
+    if (client.connected) {
+        client.publish(MQTT_TOPIC, 'OPEN');
+        statusEl.innerText = "ENVIANDO PULSO...";
+        setTimeout(() => {
+            statusEl.innerText = "CONECTADO ✅";
+        }, 2000);
+    } else {
+        alert("Aún no hay conexión con el servidor. Espera un momento.");
     }
-    btn.disabled = true;
-    setStatus('Enviando comando...');
-    client.publish(MQTT_TOPIC, 'OPEN', { qos: 1 }, (err) => {
-      if (err) {
-        console.error(err);
-        setStatus('Error al enviar');
-      } else {
-        setStatus('Comando enviado');
-      }
-      setTimeout(() => { btn.disabled = false; setStatus(''); }, 1000);
-    });
-  }
+}
 
-  btn.addEventListener('click', enviar);
-  connect();
-})();
+btn.addEventListener('click', activarPorton);
