@@ -2,34 +2,33 @@
   const btn = document.getElementById('btn');
   const statusEl = document.getElementById('status');
 
-  // Broker público EMQX con WebSocket seguro
-  const MQTT_URL = 'wss://broker.emqx.io:8084/mqtt';
+  const MQTT_URL = 'wss://broker.hivemq.com:8000/mqtt';
   const MQTT_TOPIC = 'mi-porton-unico-2026-xyz/comando';
-  const MQTT_USER = '';
-  const MQTT_PASS = '';
 
   let client;
   let connected = false;
 
   function setStatus(msg){ statusEl.textContent = msg || ''; }
+  function setIndicator(isReady) {
+    statusEl.style.color = isReady ? '#16a34a' : '#f59e0b';
+  }
 
   function connect() {
     setStatus('Conectando a MQTT...');
     client = mqtt.connect(MQTT_URL, {
-      username: MQTT_USER || undefined,
-      password: MQTT_PASS || undefined,
-      reconnectPeriod: 2000,
+      reconnectPeriod: 5000,
       clean: true
     });
 
     client.on('connect', () => {
       connected = true;
+      setIndicator(true);
       setStatus('Conectado');
     });
 
-    client.on('reconnect', () => setStatus('Reconectando...'));
-    client.on('close', () => { connected = false; setStatus('Desconectado'); });
-    client.on('error', (err) => { console.error(err); setStatus('Error MQTT'); });
+    client.on('reconnect', () => { setIndicator(false); setStatus('Reconectando...'); });
+    client.on('close', () => { connected = false; setIndicator(false); setStatus('Desconectado'); });
+    client.on('error', (err) => { console.error(err); setIndicator(false); setStatus('Error MQTT'); });
   }
 
   function enviar() {
